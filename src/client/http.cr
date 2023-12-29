@@ -8,7 +8,8 @@ module SurrealDB
 
     def initialize(url : String)
       @client = ::HTTP::Client.new(URI.parse(url))
-      @headers = ::HTTP::Headers{"Content-Type" => "application/json", "Accept" => "application/json"}
+      # @headers = ::HTTP::Headers{"Content-Type" => "application/json", "Accept" => "application/json"}
+      @headers = ::HTTP::Headers{"Content-Type" => "application/json"}
     end
 
     def authenticate(user : String, pass : String)
@@ -80,31 +81,20 @@ module SurrealDB
     end
 
     private def request(method : String, endpoint : String, query : String?)
-      res = @client.exec method, endpoint, headers: @headers, body: query
-      process_request(res)
+      response = @client.exec method, endpoint, headers: @headers, body: query
+      process_request(response)
     end
 
-    private def process_request(response : HTTP::Client::Response)
+    private def process_request(response : ::HTTP::Client::Response)
       case response.status_code
       when 200..299
-        # For cases when "status" is one of the following:
-        #   OK
-        return Array(Response).from_json res.body if ["OK"].includes?(Response.from_json(response.body).status)
-
-        raise Client::ServerError.new(ErrorResponse.from_json(response.body))
-      when 400
-        raise Client::ServerError.new("400: Server Not Found")
-      when 500
-        raise Client::ServerError.new("500: Internal Server Error")
-      when 502
-        raise Client::ServerError.new("502: Bad Gateway")
-      when 503
-        raise Client::ServerError.new("503: Service Unavailable")
-      when 504
-        raise Client::ServerError.new("504: Gateway Timeout")
+        return Array(Response).from_json response.body
       else
-        raise Client::ServerError.new("Server returned error #{response.status_code}")
+        raise Client::ServerError.new("#{response.status_code}: #{response.status_message} - #{ErrorResponse.from_json(response.body).description}")
       end
     end
+  end
+
+  class Client::ServerError < Exception
   end
 end
