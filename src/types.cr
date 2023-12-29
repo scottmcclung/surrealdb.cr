@@ -57,8 +57,5 @@ module SurrealDB
 
     @[JSON::Field(key: "description")]
     property description : String
-
-    @[JSON::Field(key: "information")]
-    property information : String
   end
 end
